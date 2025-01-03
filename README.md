@@ -11,6 +11,6 @@ The logical function behaves as follows:
   - **True (1)** if \( x_2 = 1 \) or \( x_3 = 1 \).
   - **False (0)** if \( x_2 = 0 \) and \( x_3 = 0 \).
 
+![image](https://github.com/user-attachments/assets/549c1d3e-d80a-4faf-bf23-f9761695331e)
 
 
-![gitbinar](https://user-images.githubusercontent.com/90717067/209541369-fc0d77d6-e0e6-45dd-b608-9ab36a9eb096.jpg)
