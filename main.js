@@ -1,15 +1,5 @@
-let weightX = [0.1, 0.5, 0.7];
-
-// const combinationsX = [
-//   [1, 1, 1],
-//   [0, 1, 1],
-//   [1, 0, 1],
-//   [0, 0, 1],
-//   [1, 1, 0],
-//   [0, 1, 0],
-//   [1, 0, 0],
-//   [0, 0, 0],
-// ];
+const weightFactor = 0.05;
+const thresholdArrayT = [1, 1, 1, 1, 0, 0, 0, 1];
 const combinationsX = [
   [0, 0, 0],
   [0, 0, 1],
@@ -20,138 +10,76 @@ const combinationsX = [
   [1, 1, 0],
   [1, 1, 1],
 ];
+let weightX = [0.1, 0.5, 0.7];
 
-let eraСounter = 0;
+function teachPerceptron(weight, combinations) {
+  const updatedWeights = [...weight];
+  const results = {
+    combinations,
+    weights: [],
+    sums: [],
+    outputs: [],
+    targets: thresholdArrayT,
+  };
 
-function teachPerceptron(weight, combinations, eraСounter) {
-  console.log("counter-" + eraСounter);
-  let mulArray = [];
-  let sumArray = [];
-  let thresholdArrayY = [];
-  let weightArray = [];
+  combinations.forEach((comb, index) => {
+    const sum = comb.reduce((acc, x, i) => acc + x * updatedWeights[i], 0);
+    const output = sum > 0.8 ? 1 : 0;
+    results.sums.push(sum.toFixed(2));
+    results.outputs.push(output);
 
-  // const thresholdArrayT = [1, 1, 1, 0, 1, 1, 1, 1];
-  const thresholdArrayT = [1, 1, 1, 1, 0, 0, 0, 1];
-  const weightFactor = 0.05;
-
-  for (let i = 0; i < combinations.length; i++) {
-    let mulA = [];
-    let sumA = [];
-    let thresholdValueY = [];
-
-    for (let j = 0; j < combinations[i].length; j++) {
-      mulA[j] = combinations[i][j] * weight[j];
-
-      sumA = mulA.reduce(function (x, y) {
-        return x + y;
-      }, 0);
-
-      thresholdValueY = sumA > 0.8 ? 1 : 0;
-      if (sumA == 0) {
-        thresholdValueY = 1;
-      }
+    if (thresholdArrayT[index] !== output) {
+      const correction = weightFactor * (thresholdArrayT[index] - output);
+      comb.forEach((x, i) => {
+        updatedWeights[i] += x * correction;
+      });
     }
-    thresholdArrayY.push(thresholdValueY);
-    mulArray.push(mulA);
-    sumArray.push(Number(sumA.toFixed(2)));
+    results.weights.push([...updatedWeights]);
+  });
 
-    if (thresholdArrayT[i] !== thresholdValueY) {
-      let speedFactor = weightFactor * (thresholdArrayT[i] - thresholdValueY);
+  return results;
+}
 
-      let updatedWeight = combinations[i].map((x) => x * speedFactor);
-      weight = weight.map((a, i) => a + updatedWeight[i]);
+function displayResults(results, era) {
+  const container = document.getElementById("results-container");
+  const section = document.createElement("section");
+  section.innerHTML = `
+    <h4>Era ${era}</h4>
+    ${generateTable(results.combinations, "Combinations", ["X1", "X2", "X3"])}
+    ${generateTable(results.weights, "Weights", ["W1", "W2", "W3"])}
+    ${generateTable([results.sums], "Sums", ["A"])}
+    ${generateTable([results.outputs], "Outputs", ["Y"])}
+    ${generateTable([results.targets], "Targets", ["T"])}
+  `;
+  container.appendChild(section);
+}
+
+function generateTable(data, title, headers) {
+  const table = `
+    <table>
+      <caption>${title}</caption>
+      <tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>
+      ${data.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`).join("")}
+    </table>
+  `;
+  return table;
+}
+
+function runPerceptronTraining(initialWeights, combinations) {
+  let weights = [...initialWeights];
+  let era = 0;
+
+  while (true) {
+    const results = teachPerceptron(weights, combinations);
+    displayResults(results, era);
+
+    if (JSON.stringify(weights) === JSON.stringify(results.weights[results.weights.length - 1])) {
+      break;
     }
-    weightArray.push(weight);
-  }
-  printMultiMatrix(
-    combinationsX,
-    combinationsX.length,
-    combinationsX[0].length,
-    "combinationsX",
-    eraСounter,
-    ["x1", "x2", "x3"]
-  );
-  printMultiMatrix(
-    weightArray,
-    weightArray.length,
-    weightArray[0].length,
-    "weight",
-    eraСounter,
-    ["w1", "w2", "w3"]
-  );
-  printMatrix(sumArray, sumArray.length, "sumArray", eraСounter, "A");
 
-  printMatrix(
-    thresholdArrayY,
-    thresholdArrayY.length,
-    "thresholdArrayY",
-    eraСounter,
-    "Y"
-  );
-  printMatrix(
-    thresholdArrayT,
-    thresholdArrayT.length,
-    "thresholdArrayT",
-    eraСounter,
-    "T"
-  );
-
-  console.log(weight);
-  console.log(sumArray);
-  return weight;
-}
-let oldWeightX = [];
-
-while (true) {
-  weightX = teachPerceptron(weightX, combinationsX, eraСounter);
-
-  if (oldWeightX !== weightX) {
-    oldWeightX = weightX;
-    eraСounter++;
-  } else {
-    break;
+    weights = [...results.weights[results.weights.length - 1]];
+    era++;
   }
 }
 
-function printMultiMatrix(
-  array,
-  matrixSizeA,
-  matrixSizeB,
-  matrixClass,
-  eraСounter,
-  title
-) {
-  let matrixArrayOfElements = [];
-  matrixArrayOfElements.push(`<table>`);
-  matrixArrayOfElements.push(
-    `<tr><td>${title[0]}</td><td>${title[1]}</td><td>${title[2]}</td></tr>`
-  );
-  for (i = 0; i < matrixSizeA; i++) {
-    matrixArrayOfElements.push(`<tr>`);
-    for (j = 0; j < matrixSizeB; j++) {
-      matrixArrayOfElements.push(
-        `<td> ${Number(array[i][j].toFixed(2))} </td>`
-      );
-    }
-    matrixArrayOfElements.push(`</tr>`);
-  }
-  matrixArrayOfElements.push(`</table>`);
-
-  document.getElementById(matrixClass + "-" + eraСounter).innerHTML =
-    matrixArrayOfElements.join(",").replaceAll(",", "");
-}
-
-function printMatrix(array, matrixSizeA, matrixClass, eraСounter, title) {
-  let matrixArrayOfElements = [];
-  matrixArrayOfElements.push(`<table>`);
-  matrixArrayOfElements.push(`<tr><td>${title}</td></tr>`);
-  for (i = 0; i < matrixSizeA; i++) {
-    matrixArrayOfElements.push(`<tr>`);
-    matrixArrayOfElements.push(`<td> ${array[i]} </td>`);
-    matrixArrayOfElements.push(`</tr>`);
-  }
-  matrixArrayOfElements.push(`</table>`);
-
-  document.getElementById(matrixClass + "-" + eraСounter).innerHTML =
-    matrixArrayOfElements.join(",").replaceAll(",", "");
-}
+runPerceptronTraining(weightX, combinationsX);
