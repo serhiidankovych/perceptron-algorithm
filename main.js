@@ -1,7 +1,6 @@
-const weightFactor = 0.05;
-const thresholdArrayT = [1, 1, 1, 1, 0, 0, 0, 1];
+let weightX = [0.1, 0.5, 0.7]; // Initial weights
 const combinationsX = [
-  [0, 0, 0],
+  [0, 0, 0], // X1, X2, X3 combinations
   [0, 0, 1],
   [0, 1, 0],
   [0, 1, 1],
@@ -10,76 +9,105 @@ const combinationsX = [
   [1, 1, 0],
   [1, 1, 1],
 ];
-let weightX = [0.1, 0.5, 0.7];
 
-function teachPerceptron(weight, combinations) {
-  const updatedWeights = [...weight];
-  const results = {
-    combinations,
-    weights: [],
-    sums: [],
-    outputs: [],
-    targets: thresholdArrayT,
-  };
+const thresholdArrayT = [1, 1, 1, 1, 0, 0, 0, 1];
+const weightFactor = 0.05;
+let eraCounter = 0;
 
-  combinations.forEach((comb, index) => {
-    const sum = comb.reduce((acc, x, i) => acc + x * updatedWeights[i], 0);
-    const output = sum > 0.8 ? 1 : 0;
-    results.sums.push(sum.toFixed(2));
-    results.outputs.push(output);
+function teachPerceptron(weight, combinations, eraCounter) {
+  console.log("Epoch " + eraCounter);
 
-    if (thresholdArrayT[index] !== output) {
-      const correction = weightFactor * (thresholdArrayT[index] - output);
-      comb.forEach((x, i) => {
-        updatedWeights[i] += x * correction;
-      });
+  let weightArray = [];
+  let results = [];
+  let thresholdArrayY = [];
+
+  // Process each combination (X1, X2, X3)
+  for (let i = 0; i < combinations.length; i++) {
+    let mulA = combinations[i].map((x, j) => x * weight[j]); // Multiply X1, X2, X3 by their weights
+    let sumA = mulA.reduce((acc, val) => acc + val, 0); // Sum the results
+    let thresholdValueY = sumA > 0.8 ? 1 : 0; // Activation function
+
+    if (sumA === 0) {
+      thresholdValueY = 1;
     }
-    results.weights.push([...updatedWeights]);
-  });
 
-  return results;
+    thresholdArrayY.push(thresholdValueY);
+
+    if (thresholdArrayT[i] !== thresholdValueY) {
+      let speedFactor = weightFactor * (thresholdArrayT[i] - thresholdValueY);
+      let updatedWeight = combinations[i].map((x) => x * speedFactor);
+      weight = weight.map((w, i) => w + updatedWeight[i]); // Update weights
+    }
+
+    weightArray.push(weight);
+    results.push([
+      ...combinations[i],
+      ...weight,
+      sumA.toFixed(2),
+      thresholdValueY,
+      thresholdArrayT[i],
+    ]);
+  }
+
+  printResults(results, eraCounter);
+  return weight;
 }
 
-function displayResults(results, era) {
+function printResults(results, eraCounter) {
+  let tableHTML = `
+    <h4>Epoch ${eraCounter}</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>X1</th>
+          <th>X2</th>
+          <th>X3</th>
+          <th>W1</th>
+          <th>W2</th>
+          <th>W3</th>
+          <th>A</th>
+          <th>Y</th>
+          <th>T</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  // Fill in the table rows
+  results.forEach((row) => {
+    tableHTML += `
+      <tr>
+        <td>${row[0]}</td>
+        <td>${row[1]}</td>
+        <td>${row[2]}</td>
+        <td>${row[3].toFixed(2)}</td>
+        <td>${row[4].toFixed(2)}</td>
+        <td>${row[5].toFixed(2)}</td>
+        <td>${row[6]}</td>
+        <td>${row[7]}</td>
+        <td>${row[8]}</td>
+      </tr>
+    `;
+  });
+
+  tableHTML += `</tbody></table>`;
+
   const container = document.getElementById("results-container");
   const section = document.createElement("section");
-  section.innerHTML = `
-    <h4>Era ${era}</h4>
-    ${generateTable(results.combinations, "Combinations", ["X1", "X2", "X3"])}
-    ${generateTable(results.weights, "Weights", ["W1", "W2", "W3"])}
-    ${generateTable([results.sums], "Sums", ["A"])}
-    ${generateTable([results.outputs], "Outputs", ["Y"])}
-    ${generateTable([results.targets], "Targets", ["T"])}
-  `;
+  section.innerHTML = tableHTML;
   container.appendChild(section);
 }
 
-function generateTable(data, title, headers) {
-  const table = `
-    <table>
-      <caption>${title}</caption>
-      <tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>
-      ${data.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`).join("")}
-    </table>
-  `;
-  return table;
-}
+let oldWeightX = [];
 
-function runPerceptronTraining(initialWeights, combinations) {
-  let weights = [...initialWeights];
-  let era = 0;
+while (true) {
+  weightX = teachPerceptron(weightX, combinationsX, eraCounter);
 
-  while (true) {
-    const results = teachPerceptron(weights, combinations);
-    displayResults(results, era);
-
-    if (JSON.stringify(weights) === JSON.stringify(results.weights[results.weights.length - 1])) {
-      break;
-    }
-
-    weights = [...results.weights[results.weights.length - 1]];
-    era++;
+  // Check if weights have changed, if not, stop training
+  if (JSON.stringify(oldWeightX) !== JSON.stringify(weightX)) {
+    oldWeightX = [...weightX];
+    eraCounter++;
+  } else {
+    break;
   }
 }
-
-runPerceptronTraining(weightX, combinationsX);
